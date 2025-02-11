@@ -14,6 +14,9 @@ from datahub.cli.cli_utils import post_entity
 from datahub.configuration.common import GraphError
 from datahub.ingestion.graph.client import DataHubGraph, get_default_graph
 from datahub.metadata.schema_classes import SystemMetadataClass
+from azure.storage.blob import BlobServiceClient
+from azure.identity import ClientSecretCredential
+
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +32,7 @@ def iceberg() -> None:
     pass
 
 
-def validate_creds(client_id: str, client_secret: str, region: str) -> Any:
+def validate_creds_s3(client_id: str, client_secret: str, region: str) -> Any:
     try:
         # Create a boto3 client with the provided credentials
         # Using STS (Security Token Service) for validation
@@ -58,6 +61,20 @@ def validate_creds(client_id: str, client_secret: str, region: str) -> Any:
         )
         sys.exit(1)
 
+def validate_creds_abfss(container: str, tenant_id: str, client_id: str, client_secret: str) -> None:
+    try:
+        creds = ClientSecretCredential(tenant_id=tenant_id, client_id=client_id, client_secret=client_secret)
+        client = BlobServiceClient(account_url=container, credential=creds)
+        # Test to see if the credentials work
+        client.get_account_information()
+    except:
+        # If credentials are invalid, return False with error message
+        click.secho(
+            "Invalid credentials",
+            fg="red",
+            err=True,
+        )
+        sys.exit(1)
 
 def validate_role(role: str, sts_client: Any, duration_seconds: Optional[int]) -> None:
     try:
@@ -93,16 +110,17 @@ def validate_role(role: str, sts_client: Any, duration_seconds: Optional[int]) -
         sys.exit(1)
 
 
-def validate_warehouse(data_root: str) -> None:
+def validate_warehouse(data_root: str) -> str:
     # validate data_root location
     scheme = urlparse(data_root).scheme
-    if scheme != "s3":
+    if scheme not in ["s3", "abfs"]:
         click.secho(
             f"Unsupported warehouse location '{data_root}', supported schemes: s3",
             fg="red",
             err=True,
         )
         sys.exit(1)
+    return scheme
 
 
 @iceberg.command()
@@ -189,10 +207,13 @@ def create(
         sys.exit(1)
 
     # will throw an actionable error message if invalid.
-    validate_warehouse(data_root)
-    storage_client = validate_creds(client_id, client_secret, region)
-    validate_role(role, storage_client, duration_seconds)
-
+    validated_warehouse = validate_warehouse(data_root)
+    if validated_warehouse == 's3':
+        storage_client = validate_creds_s3(client_id, client_secret, region)
+        validate_role(role, storage_client, duration_seconds)
+    if validated_warehouse == 'abfss':
+        validate_creds_abfss(container=data_root, tenant_id="", client_id=client_id, client_secret=client_secret)
+        pass
     client_id_urn, client_secret_urn = create_iceberg_secrets(
         client, warehouse, client_id, client_secret
     )
@@ -336,7 +357,7 @@ def update(
         raise click.ClickException(f"Warehouse with name {warehouse} does not exist")
 
     validate_warehouse(data_root)
-    storage_client = validate_creds(client_id, client_secret, region)
+    storage_client = validate_creds_s3(client_id, client_secret, region)
     validate_role(role, storage_client, duration_seconds)
 
     client_id_urn, client_secret_urn = update_iceberg_secrets(

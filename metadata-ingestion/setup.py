@@ -54,6 +54,7 @@ framework_common = {
     "jsonref",
     "jsonschema",
     "ruamel.yaml",
+    "azure-identity",
 }
 
 pydantic_no_v2 = {

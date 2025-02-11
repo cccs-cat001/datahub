@@ -5,6 +5,7 @@ import static com.linkedin.metadata.utils.GenericRecordUtils.serializeAspect;
 import static io.datahubproject.iceberg.catalog.Utils.*;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.Maps;
 import com.linkedin.common.AuditStamp;
 import com.linkedin.common.SubTypes;
 import com.linkedin.common.urn.DatasetUrn;
@@ -17,6 +18,7 @@ import com.linkedin.data.template.StringMap;
 import com.linkedin.dataset.DatasetProperties;
 import com.linkedin.events.metadata.ChangeType;
 import com.linkedin.metadata.authorization.PoliciesConfig;
+import com.linkedin.metadata.authorization.PoliciesConfig.Privilege;
 import com.linkedin.metadata.entity.EntityService;
 import com.linkedin.metadata.query.filter.Condition;
 import com.linkedin.metadata.query.filter.Criterion;
@@ -37,6 +39,8 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.apache.iceberg.*;
 import org.apache.iceberg.aws.s3.S3FileIO;
+import org.apache.iceberg.azure.AzureProperties;
+import org.apache.iceberg.azure.adlsv2.ADLSFileIO;
 import org.apache.iceberg.catalog.Namespace;
 import org.apache.iceberg.catalog.SupportsNamespaces;
 import org.apache.iceberg.catalog.TableIdentifier;
@@ -56,7 +60,8 @@ public class DataHubRestCatalog extends BaseMetastoreViewCatalog implements Supp
 
   static final int PAGE_SIZE = 100;
 
-  // Upper bound for results on list namespaces/tables/views. Must use pagination for anything more
+  // Upper bound for results on list namespaces/tables/views. Must use pagination
+  // for anything more
   // than that.
   static final int MAX_LIST_SIZE = 1000;
 
@@ -102,7 +107,8 @@ public class DataHubRestCatalog extends BaseMetastoreViewCatalog implements Supp
   }
 
   @Override
-  public void initialize(String name, Map<String, String> properties) {}
+  public void initialize(String name, Map<String, String> properties) {
+  }
 
   @Override
   protected TableOperations newTableOps(TableIdentifier tableIdentifier) {
@@ -135,12 +141,11 @@ public class DataHubRestCatalog extends BaseMetastoreViewCatalog implements Supp
       throw new AlreadyExistsException("Table already exists: %s", identifier);
     }
 
-    FileIO io =
-        new S3FileIOFactory()
-            .createIO(
-                platformInstance(),
-                PoliciesConfig.DATA_READ_ONLY_PRIVILEGE,
-                Set.of(parentDir(metadataFileLocation)));
+    FileIO io = new S3FileIOFactory()
+        .createIO(
+            platformInstance(),
+            PoliciesConfig.DATA_READ_ONLY_PRIVILEGE,
+            Set.of(parentDir(metadataFileLocation)));
     InputFile metadataFile = io.newInputFile(metadataFileLocation);
     TableMetadata metadata = TableMetadataParser.read(io, metadataFile);
 
@@ -188,9 +193,8 @@ public class DataHubRestCatalog extends BaseMetastoreViewCatalog implements Supp
       containerMcp.setEntityUrn(datasetUrn);
       containerMcp.setAspect(serializeAspect(container));
       containerMcp.setChangeType(ChangeType.UPSERT);
-      StringMap headers =
-          new StringMap(
-              Collections.singletonMap(SYNC_INDEX_UPDATE_HEADER_NAME, Boolean.toString(true)));
+      StringMap headers = new StringMap(
+          Collections.singletonMap(SYNC_INDEX_UPDATE_HEADER_NAME, Boolean.toString(true)));
       mcp.setHeaders(headers);
       containerMcp.setHeaders(headers);
       ingestMcp(containerMcp, auditStamp);
@@ -226,8 +230,8 @@ public class DataHubRestCatalog extends BaseMetastoreViewCatalog implements Supp
 
     ingestContainerProperties(namespace, properties, auditStamp);
 
-    MetadataChangeProposal platformInstanceMcp =
-        platformInstanceMcp(platformInstance(), containerUrn, CONTAINER_ENTITY_NAME);
+    MetadataChangeProposal platformInstanceMcp = platformInstanceMcp(platformInstance(), containerUrn,
+        CONTAINER_ENTITY_NAME);
     ingestMcp(platformInstanceMcp, auditStamp);
   }
 
@@ -236,20 +240,16 @@ public class DataHubRestCatalog extends BaseMetastoreViewCatalog implements Supp
     Filter filter;
     if (namespace.isEmpty()) {
       Criterion noParentCriterion = CriterionUtils.buildCriterion("container", Condition.IS_NULL);
-      Criterion subTypeCriterion =
-          CriterionUtils.buildCriterion("typeNames", Condition.EQUAL, CONTAINER_SUB_TYPE);
-      Criterion dataPlatformInstanceCriterion =
-          CriterionUtils.buildCriterion(
-              "platformInstance",
-              Condition.EQUAL,
-              platformInstanceUrn(platformInstance()).toString());
-      filter =
-          QueryUtils.getFilterFromCriteria(
-              List.of(noParentCriterion, subTypeCriterion, dataPlatformInstanceCriterion));
+      Criterion subTypeCriterion = CriterionUtils.buildCriterion("typeNames", Condition.EQUAL, CONTAINER_SUB_TYPE);
+      Criterion dataPlatformInstanceCriterion = CriterionUtils.buildCriterion(
+          "platformInstance",
+          Condition.EQUAL,
+          platformInstanceUrn(platformInstance()).toString());
+      filter = QueryUtils.getFilterFromCriteria(
+          List.of(noParentCriterion, subTypeCriterion, dataPlatformInstanceCriterion));
     } else {
-      filter =
-          QueryUtils.newFilter(
-              "container.keyword", containerUrn(platformInstance(), namespace).toString());
+      filter = QueryUtils.newFilter(
+          "container.keyword", containerUrn(platformInstance(), namespace).toString());
     }
 
     SearchResult searchResult = search(filter, CONTAINER_ENTITY_NAME);
@@ -267,12 +267,10 @@ public class DataHubRestCatalog extends BaseMetastoreViewCatalog implements Supp
   public Map<String, String> loadNamespaceMetadata(Namespace namespace)
       throws NoSuchNamespaceException {
 
-    ContainerProperties containerProperties =
-        (ContainerProperties)
-            entityService.getLatestAspect(
-                operationContext,
-                containerUrn(platformInstance(), namespace),
-                CONTAINER_PROPERTIES_ASPECT_NAME);
+    ContainerProperties containerProperties = (ContainerProperties) entityService.getLatestAspect(
+        operationContext,
+        containerUrn(platformInstance(), namespace),
+        CONTAINER_PROPERTIES_ASPECT_NAME);
 
     if (containerProperties == null) {
       throw new NoSuchNamespaceException("Namespace does not exist: " + namespace);
@@ -334,8 +332,7 @@ public class DataHubRestCatalog extends BaseMetastoreViewCatalog implements Supp
         .filter(Predicate.not(properties::containsKey))
         .forEach(missing::add);
 
-    UpdateNamespacePropertiesResponse.Builder responseBuilder =
-        UpdateNamespacePropertiesResponse.builder();
+    UpdateNamespacePropertiesResponse.Builder responseBuilder = UpdateNamespacePropertiesResponse.builder();
 
     request.removals().stream()
         .filter(Predicate.not(missing::contains))
@@ -368,9 +365,8 @@ public class DataHubRestCatalog extends BaseMetastoreViewCatalog implements Supp
     mcp.setAspect(serializeAspect(aspect));
     mcp.setChangeType(ChangeType.UPSERT);
 
-    StringMap headers =
-        new StringMap(
-            Collections.singletonMap(SYNC_INDEX_UPDATE_HEADER_NAME, Boolean.toString(true)));
+    StringMap headers = new StringMap(
+        Collections.singletonMap(SYNC_INDEX_UPDATE_HEADER_NAME, Boolean.toString(true)));
     mcp.setHeaders(headers);
 
     ingestMcp(mcp, auditStamp);
@@ -381,24 +377,21 @@ public class DataHubRestCatalog extends BaseMetastoreViewCatalog implements Supp
   }
 
   private List<TableIdentifier> listTablesOrViews(Namespace namespace, String typeName) {
-    Filter filter =
-        QueryUtils.newFilter(
-            Map.of(
-                "container.keyword",
-                containerUrn(platformInstance(), namespace).toString(),
-                "typeNames",
-                typeName));
+    Filter filter = QueryUtils.newFilter(
+        Map.of(
+            "container.keyword",
+            containerUrn(platformInstance(), namespace).toString(),
+            "typeNames",
+            typeName));
 
     SearchResult searchResult = search(filter, DATASET_ENTITY_NAME);
 
-    Set<Urn> urns =
-        searchResult.getEntities().stream()
-            .map(SearchEntity::getEntity)
-            .collect(Collectors.toSet());
+    Set<Urn> urns = searchResult.getEntities().stream()
+        .map(SearchEntity::getEntity)
+        .collect(Collectors.toSet());
 
-    Map<Urn, List<RecordTemplate>> aspects =
-        entityService.getLatestAspects(
-            operationContext, urns, Set.of(DATASET_PROPERTIES_ASPECT_NAME), false);
+    Map<Urn, List<RecordTemplate>> aspects = entityService.getLatestAspects(
+        operationContext, urns, Set.of(DATASET_PROPERTIES_ASPECT_NAME), false);
 
     return aspects.values().stream()
         .filter(x -> x != null && !x.isEmpty())
@@ -420,9 +413,8 @@ public class DataHubRestCatalog extends BaseMetastoreViewCatalog implements Supp
     int totalCount;
 
     do {
-      SearchResult pageResult =
-          searchService.search(
-              operationContext, List.of(entityName), "*", filter, List.of(), startIndex, PAGE_SIZE);
+      SearchResult pageResult = searchService.search(
+          operationContext, List.of(entityName), "*", filter, List.of(), startIndex, PAGE_SIZE);
       totalCount = pageResult.getNumEntities();
       if (totalCount > MAX_LIST_SIZE) {
         totalCount = MAX_LIST_SIZE;
@@ -437,8 +429,8 @@ public class DataHubRestCatalog extends BaseMetastoreViewCatalog implements Supp
   }
 
   private boolean searchIsEmpty(Filter filter, String... entityNames) {
-    SearchResult searchResult =
-        searchService.search(operationContext, List.of(entityNames), "*", filter, List.of(), 0, 1);
+    SearchResult searchResult = searchService.search(operationContext, List.of(entityNames), "*", filter, List.of(), 0,
+        1);
 
     return searchResult.getEntities().isEmpty();
   }
@@ -449,10 +441,9 @@ public class DataHubRestCatalog extends BaseMetastoreViewCatalog implements Supp
         String platformInstance, PoliciesConfig.Privilege privilege, Set<String> locations) {
 
       FileIO io = new S3FileIO();
-      Map<String, String> creds =
-          credentialProvider.getCredentials(
-              new S3CredentialProvider.CredentialsCacheKey(platformInstance, privilege, locations),
-              warehouse.getStorageProviderCredentials());
+      Map<String, String> creds = credentialProvider.getCredentials(
+          new S3CredentialProvider.CredentialsCacheKey(platformInstance, privilege, locations),
+          warehouse.getStorageProviderCredentials());
       io.initialize(creds);
       closeableGroup.addCloseable(io);
       return io;
@@ -463,6 +454,24 @@ public class DataHubRestCatalog extends BaseMetastoreViewCatalog implements Supp
         String platformInstance, PoliciesConfig.Privilege privilege, TableMetadata tableMetadata) {
       return createIO(platformInstance, privilege, locations(tableMetadata));
     }
+  }
+
+  private class AbfsFileIOFactory implements FileIOFactory {
+
+    @Override
+    public FileIO createIO(String platformInstance, Privilege privilege, Set<String> locations) {
+      FileIO io = new ADLSFileIO();
+      Map<String, String> creds = credentialProvider.getCredentials(null, null)
+      io.initialize(Map.of());
+      closeableGroup.addCloseable(io);
+      return io;
+    }
+
+    @Override
+    public FileIO createIO(String platformInstance, Privilege privilege, TableMetadata tableMetadata) {
+      return createIO(platformInstance, privilege, locations(tableMetadata));
+    }
+
   }
 
   @Override

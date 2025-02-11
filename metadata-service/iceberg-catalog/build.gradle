@@ -16,6 +16,7 @@ dependencies {
     implementation project(':metadata-integration:java:datahub-schematron:lib')
     implementation 'org.apache.iceberg:iceberg-core:1.6.1'
     implementation 'org.apache.iceberg:iceberg-aws:1.6.1'
+    implementation 'org.apache.iceberg:iceberg-azure:1.6.1'
     implementation 'software.amazon.awssdk:sts:2.26.12'
     implementation 'software.amazon.awssdk:iam-policy-builder:2.26.12'
     implementation externalDependency.awsS3
