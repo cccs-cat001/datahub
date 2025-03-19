@@ -103,7 +103,7 @@ def register_mock_api(
 
     api_vs_response.update(override_data or {})
 
-    for url in api_vs_response.keys():
+    for url in api_vs_response:
         request_mock.register_uri(
             api_vs_response[url]["method"],
             url,
@@ -1440,12 +1440,12 @@ def test_powerbi_cross_workspace_reference_info_message(
     is_entry_present: bool = False
     # Printing INFO entries
     for entry in info_entries.values():
-        if entry.title == "Missing Lineage For Tile":
+        if entry.title == "Missing Dataset Lineage For Tile":
             is_entry_present = True
             break
 
     assert is_entry_present, (
-        'Info message "Missing Lineage For Tile" should be present in reporter'
+        'Info message "Missing Dataset Lineage For Tile" should be present in reporter'
     )
 
     test_resources_dir = pytestconfig.rootpath / "tests/integration/powerbi"
@@ -1463,8 +1463,10 @@ def common_app_ingest(
     pytestconfig: pytest.Config,
     requests_mock: Any,
     output_mcp_path: str,
-    override_config: dict = {},
+    override_config: Optional[dict] = None,
 ) -> Pipeline:
+    if override_config is None:
+        override_config = {}
     register_mock_api(
         pytestconfig=pytestconfig,
         request_mock=requests_mock,

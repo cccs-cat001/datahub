@@ -72,6 +72,7 @@ const headerDropdownItems = new Set([
     EntityMenuItems.UPDATE_DEPRECATION,
     EntityMenuItems.RAISE_INCIDENT,
     EntityMenuItems.ANNOUNCE,
+    EntityMenuItems.LINK_VERSION,
 ]);
 
 /**
@@ -287,8 +288,8 @@ export class DatasetEntity implements Entity<Dataset> {
         },
         { component: SidebarDatasetViewDefinitionSection },
         { component: SidebarQueryOperationsSection },
-        { component: StatusSection },
         { component: SidebarStructuredProperties },
+        { component: StatusSection },
         // {
         //    component: SidebarRecommendationsSection,
         // },

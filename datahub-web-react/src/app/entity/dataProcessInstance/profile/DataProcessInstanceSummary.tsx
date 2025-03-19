@@ -24,6 +24,7 @@ const InfoItemContainer = styled.div<{ justifyContent }>`
 const InfoItemContent = styled.div`
     padding-top: 8px;
     width: 100px;
+    overflow-wrap: break-word;
 `;
 
 const propertyTableColumns = [
@@ -46,7 +47,7 @@ export default function MLModelSummary() {
         if (!state || state.length === 0) return '-';
         const result = state[0]?.result?.resultType;
         const statusColor = result === DataProcessInstanceRunResultType.Success ? 'green' : 'red';
-        return <Pill label={capitalize(result)} colorScheme={statusColor} clickable={false} />;
+        return <Pill label={capitalize(result)} color={statusColor} clickable={false} />;
     };
 
     const formatDuration = (state) => {

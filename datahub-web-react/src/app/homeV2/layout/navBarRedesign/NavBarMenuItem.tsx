@@ -119,7 +119,13 @@ export default function NavBarMenuItem({ item, isCollapsed, isSelected, iconSize
 
     const component = (
         <Tooltip title={isCollapsed ? item.title : null} placement="right" showArrow={false}>
-            <StyledMenuItem isCollapsed={isCollapsed} onClick={onClick} aria-label={item.title} {...props}>
+            <StyledMenuItem
+                isCollapsed={isCollapsed}
+                onClick={onClick}
+                aria-label={item.title}
+                {...props}
+                data-testid={item.dataTestId}
+            >
                 {item.icon || item.selectedIcon ? (
                     <Icon $size={iconSize} $isSelected={isSelected}>
                         {isSelected ? item.selectedIcon || item.icon : item.icon}
@@ -132,7 +138,7 @@ export default function NavBarMenuItem({ item, isCollapsed, isSelected, iconSize
                         <StyledText size="md" type="div" weight="semiBold" $isSelected={isSelected}>
                             {item.title}
                         </StyledText>
-                        {item?.badge?.show && <Badge count={item.badge.count} clickable={false} colorScheme="violet" />}
+                        {item?.badge?.show && <Badge count={item.badge.count} clickable={false} color="violet" />}
                     </ItemTitleContentWrapper>
                 )}
             </StyledMenuItem>

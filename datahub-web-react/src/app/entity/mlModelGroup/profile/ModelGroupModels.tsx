@@ -118,20 +118,15 @@ export default function MLGroupModels() {
                 return (
                     <TagContainer>
                         {aliases.map((alias) => (
-                            <Pill
-                                key={alias.versionTag}
-                                label={alias.versionTag}
-                                colorScheme="blue"
-                                clickable={false}
-                            />
+                            <Pill key={alias.versionTag} label={alias.versionTag} color="blue" clickable={false} />
                         ))}
                     </TagContainer>
                 );
             },
         },
         {
-            title: 'Tags',
-            key: 'tags',
+            title: 'Properties',
+            key: 'properties',
             width: 200,
             render: (_: any, record: any) => {
                 const tags = record.properties?.tags || [];

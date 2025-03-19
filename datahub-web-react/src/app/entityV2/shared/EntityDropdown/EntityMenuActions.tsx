@@ -1,8 +1,8 @@
 import { MoreOutlined } from '@ant-design/icons';
 import React, { useContext } from 'react';
 import styled from 'styled-components';
+import { useAppConfig } from '@src/app/useAppConfig';
 import { useEntityData, useRefetch } from '../../../entity/shared/EntityContext';
-import { ENTITY_PROFILE_V2_SUBSCRIPTION_ID } from '../../../onboarding/configV2/EntityProfileOnboardingConfig';
 import ShareMenuAction from '../../../shared/share/v2/ShareMenuAction';
 import EntitySidebarContext from '../../../sharedV2/EntitySidebarContext';
 import DeleteEntityMenuItem from './DeleteEntityMenuAction';
@@ -24,6 +24,7 @@ export enum EntityMenuItems {
     EDIT, // acryl-main only
     ANNOUNCE, // acryl-main only
     RAISE_INCIDENT,
+    LINK_VERSION,
 }
 
 export const MenuIcon = styled(MoreOutlined)<{ fontSize?: number }>`
@@ -63,6 +64,9 @@ function EntityMenuActions(props: Props) {
 
     const refetch = useRefetch();
 
+    const { entityVersioningEnabled } = useAppConfig().config.featureFlags;
+
+    const hasVersioningActions = !!(menuItems.has(EntityMenuItems.LINK_VERSION) || entityData?.versionProperties);
     return (
         <>
             {isClosed ? (
@@ -74,12 +78,27 @@ function EntityMenuActions(props: Props) {
                     {menuItems.has(EntityMenuItems.DELETE) && (
                         <DeleteEntityMenuItem onDelete={onDelete} options={options} />
                     )}
-                    {menuItems.has(EntityMenuItems.RAISE_INCIDENT) && <RaiseIncidentMenuAction />}{' '}
+                    {menuItems.has(EntityMenuItems.RAISE_INCIDENT) && <RaiseIncidentMenuAction />}
+                    {entityVersioningEnabled && hasVersioningActions && (
+                        <MoreOptionsContainer>
+                            <MoreOptionsMenuAction
+                                menuItems={
+                                    menuItems.has(EntityMenuItems.LINK_VERSION)
+                                        ? new Set([EntityMenuItems.LINK_VERSION])
+                                        : new Set()
+                                }
+                                urn={urn}
+                                entityType={entityType}
+                                entityData={entityData}
+                                refetch={refetch}
+                            />
+                        </MoreOptionsContainer>
+                    )}
                 </MenuItems>
             ) : (
                 <MenuItems>
                     {menuItems.has(EntityMenuItems.EXTERNAL_URL) && <ExternalUrlMenuAction />}
-                    <MoreOptionsContainer id={ENTITY_PROFILE_V2_SUBSCRIPTION_ID}>
+                    <MoreOptionsContainer>
                         <MoreOptionsMenuAction
                             menuItems={menuItems}
                             urn={urn}

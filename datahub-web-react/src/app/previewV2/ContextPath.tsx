@@ -82,6 +82,7 @@ const PlatFormTitle = styled.span`
 interface Props {
     // eslint-disable-next-line react/no-unused-prop-types
     entityLogoComponent?: JSX.Element;
+    // eslint-disable-next-line react/no-unused-prop-types
     instanceId?: string;
     // eslint-disable-next-line react/no-unused-prop-types
     typeIcon?: JSX.Element;
@@ -94,6 +95,7 @@ interface Props {
     browsePaths?: Maybe<BrowsePathV2> | undefined;
     contentRef: React.RefObject<HTMLDivElement>;
     isContentTruncated?: boolean;
+    linksDisabled?: boolean;
 }
 
 function ContextPath(props: Props) {
@@ -102,12 +104,12 @@ function ContextPath(props: Props) {
         entityType,
         parentEntities,
         browsePaths,
-        instanceId,
         entityTitleWidth = 200,
         previewType,
         isCompactView,
         contentRef,
         isContentTruncated = false,
+        linksDisabled,
     } = props;
 
     const entityRegistry = useEntityRegistryV2();
@@ -116,12 +118,10 @@ function ContextPath(props: Props) {
 
     const divider = <PlatformDivider>|</PlatformDivider>;
 
-    const hasPlatformInstance = !!instanceId;
     const hasBrowsePath = !!browsePaths?.path?.length && !isDefaultBrowsePath(browsePaths);
     const hasParentEntities = !!parentEntities?.length;
 
-    const showInstanceIdDivider = hasBrowsePath || hasParentEntities;
-    const showEntityTypeDivider = hasPlatformInstance || hasBrowsePath || hasParentEntities;
+    const showEntityTypeDivider = hasBrowsePath || hasParentEntities;
 
     return (
         <PlatformContentWrapper>
@@ -134,21 +134,16 @@ function ContextPath(props: Props) {
                 <PlatFormTitle>{capitalizeFirstLetterOnly(type)}</PlatFormTitle>
                 {showEntityTypeDivider && divider}
             </PlatformText>
-            {instanceId && (
-                <PlatformText>
-                    {instanceId}
-                    {showInstanceIdDivider && divider}
-                </PlatformText>
-            )}
             {hasBrowsePath ? (
                 <BrowsePaths
                     browsePaths={browsePaths}
                     previewType={previewType}
                     contentRef={contentRef}
                     isContentTruncated={isContentTruncated}
+                    linksDisabled={linksDisabled}
                 />
             ) : (
-                <ParentEntities parentEntities={parentEntities || []} numVisible={3} />
+                <ParentEntities parentEntities={parentEntities || []} numVisible={3} linksDisabled={linksDisabled} />
             )}
         </PlatformContentWrapper>
     );
