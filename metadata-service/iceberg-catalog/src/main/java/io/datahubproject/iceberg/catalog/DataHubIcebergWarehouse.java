@@ -51,7 +51,8 @@ public class DataHubIcebergWarehouse {
 
   private final CacheEvictionService cacheEvictionService;
 
-  // When evicting a iceberg entity urn, these are additional urns that need to be evicted since
+  // When evicting a iceberg entity urn, these are additional urns that need to be
+  // evicted since
   // they are a way to
   // ge to the newly modified iceberg entity
   private final List<Urn> commonUrnsToEvict;
@@ -102,6 +103,19 @@ public class DataHubIcebergWarehouse {
   }
 
   public CredentialProvider.StorageProviderCredentials getStorageProviderCredentials() {
+    switch (icebergWarehouse.getProvider().toLowerCase()) {
+      case "aws":
+        return getAWSStorageProviderCredentials();
+      case "azure":
+        return getAzureStorageProviderCredentials();
+      default:
+        throw new RuntimeException(
+            icebergWarehouse.getProvider()
+                + " is an unknown blob storage provider. Options are AWS or Azure");
+    }
+  }
+
+  private CredentialProvider.StorageProviderCredentials getAWSStorageProviderCredentials() {
 
     Urn clientIdUrn, clientSecretUrn;
     String role, region;
@@ -109,8 +123,8 @@ public class DataHubIcebergWarehouse {
 
     clientIdUrn = icebergWarehouse.getClientId();
     clientSecretUrn = icebergWarehouse.getClientSecret();
-    role = icebergWarehouse.getRole();
-    region = icebergWarehouse.getRegion();
+    role = icebergWarehouse.getCustomProperties().get("role");
+    region = icebergWarehouse.getCustomProperties().get("region");
     expirationSeconds = icebergWarehouse.getTempCredentialExpirationSeconds();
 
     Map<Urn, List<RecordTemplate>> credsMap =
@@ -130,11 +144,41 @@ public class DataHubIcebergWarehouse {
     String clientSecret = secretService.decrypt(clientSecretValue.getValue());
 
     return new CredentialProvider.StorageProviderCredentials(
-        clientId, clientSecret, role, region, expirationSeconds);
+        clientId, clientSecret, Map.of("role", role, "region", region), expirationSeconds);
+  }
+
+  private CredentialProvider.StorageProviderCredentials getAzureStorageProviderCredentials() {
+    Urn clientIdUrn, clientSecretUrn;
+    String tenantId;
+    Integer expirationSeconds;
+
+    clientIdUrn = icebergWarehouse.getClientId();
+    clientSecretUrn = icebergWarehouse.getClientSecret();
+    tenantId = icebergWarehouse.getCustomProperties().get("tenantId");
+    expirationSeconds = icebergWarehouse.getTempCredentialExpirationSeconds();
+
+    Map<Urn, List<RecordTemplate>> credsMap =
+        entityService.getLatestAspects(
+            operationContext,
+            Set.of(clientIdUrn, clientSecretUrn),
+            Set.of("dataHubSecretValue"),
+            false);
+
+    DataHubSecretValue clientIdValue =
+        new DataHubSecretValue(credsMap.get(clientIdUrn).get(0).data());
+
+    String clientId = secretService.decrypt(clientIdValue.getValue());
+
+    DataHubSecretValue clientSecretValue =
+        new DataHubSecretValue(credsMap.get(clientSecretUrn).get(0).data());
+    String clientSecret = secretService.decrypt(clientSecretValue.getValue());
+
+    return new CredentialProvider.StorageProviderCredentials(
+        clientId, clientSecret, Map.of("tenantId", tenantId), expirationSeconds);
   }
 
   public String getDataRoot() {
-    return icebergWarehouse.getDataRoot();
+    return icebergWarehouse.getCustomProperties().get("dataRoot");
   }
 
   @SneakyThrows
@@ -220,7 +264,8 @@ public class DataHubIcebergWarehouse {
         getLatestAspectNonRemoved(datasetUrn.get(), DATASET_ICEBERG_METADATA_ASPECT_NAME);
 
     if (icebergMeta.isEmpty()) {
-      // possibly some deletion cleanup is pending; log error & return as if dataset doesn't exist.
+      // possibly some deletion cleanup is pending; log error & return as if dataset
+      // doesn't exist.
       log.error(
           String.format(
               "IcebergMetadata not found for resource %s, dataset %s",
@@ -242,7 +287,8 @@ public class DataHubIcebergWarehouse {
           getLatestEnvelopedAspectNonRemoved(
               datasetUrn.get(), DATASET_ICEBERG_METADATA_ASPECT_NAME);
       if (existingEnveloped.isEmpty()) {
-        // possibly some deletion cleanup is pending; log error & return as if dataset doesn't
+        // possibly some deletion cleanup is pending; log error & return as if dataset
+        // doesn't
         // exist.
         log.error(
             String.format(

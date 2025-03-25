@@ -20,8 +20,7 @@ public interface CredentialProvider {
   class StorageProviderCredentials {
     public final String clientId;
     public final String clientSecret;
-    public final String role;
-    public final String region;
+    public final Map<String, String> customProperties;
     public final Integer tempCredentialExpirationSeconds;
   }
 

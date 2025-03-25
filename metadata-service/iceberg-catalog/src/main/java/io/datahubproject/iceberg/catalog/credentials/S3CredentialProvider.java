@@ -34,7 +34,7 @@ public class S3CredentialProvider implements CredentialProvider {
       AssumeRoleResponse response =
           stsClient.assumeRole(
               AssumeRoleRequest.builder()
-                  .roleArn(storageProviderCredentials.role)
+                  .roleArn(storageProviderCredentials.customProperties.get("role"))
                   .roleSessionName("DataHubIcebergSession")
                   .durationSeconds(expiration)
                   .policy(sessionPolicy)
@@ -42,7 +42,7 @@ public class S3CredentialProvider implements CredentialProvider {
 
       return Map.of(
           "client.region",
-          storageProviderCredentials.region,
+          storageProviderCredentials.customProperties.get("region"),
           "s3.access-key-id",
           response.credentials().accessKeyId(),
           "s3.secret-access-key",
@@ -57,9 +57,8 @@ public class S3CredentialProvider implements CredentialProvider {
         AwsBasicCredentials.create(
             storageProviderCredentials.clientId, storageProviderCredentials.clientSecret);
     return StsClient.builder()
-        .region(Region.of(storageProviderCredentials.region))
+        .region(Region.of(storageProviderCredentials.customProperties.get("region")))
         .credentialsProvider(StaticCredentialsProvider.create(credentials))
-        .region(Region.of(storageProviderCredentials.region))
         .build();
   }
 

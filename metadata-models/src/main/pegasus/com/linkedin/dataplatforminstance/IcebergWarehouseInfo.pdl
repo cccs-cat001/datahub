@@ -2,6 +2,7 @@ namespace com.linkedin.dataplatforminstance
 
 import com.linkedin.common.Urn
 import com.linkedin.common.FabricType
+import com.linkedin.common.CustomProperties
 
 /**
  * An Iceberg warehouse location and credentails whose read/writes are governed by datahub catalog.
@@ -9,12 +10,7 @@ import com.linkedin.common.FabricType
 @Aspect = {
   "name": "icebergWarehouseInfo"
 }
-record  IcebergWarehouseInfo {
-
-  /**
-   * Path of the root for the backing store of the tables in the warehouse.
-   */
-  dataRoot: string
+record  IcebergWarehouseInfo includes CustomProperties {
 
   /**
    * clientId to be used to authenticate with storage hosting this warehouse
@@ -27,14 +23,9 @@ record  IcebergWarehouseInfo {
   clientSecret: Urn
 
   /**
-   * region where the warehouse is located.
+   * provider of the backing blob storage
    */
-  region: string
-
-  /*
-   * Role to be used when vending credentials to writers.
-   */
-  role: optional string
+  provider: string
 
   /*
    * Expiration for temporary credentials created to access this warehouse.

@@ -38,6 +38,7 @@ public class ABFSCredentialProvider implements CredentialProvider {
         new ClientSecretCredentialBuilder()
             .clientId(storageProviderCredentials.clientId)
             .clientSecret(storageProviderCredentials.clientSecret)
+            .tenantId(storageProviderCredentials.customProperties.get("tenantId"))
             .build();
     return new BlobServiceClientBuilder().credential(creds).buildClient();
   }
