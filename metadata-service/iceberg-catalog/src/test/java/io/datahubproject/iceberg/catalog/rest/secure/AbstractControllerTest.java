@@ -112,9 +112,8 @@ public abstract class AbstractControllerTest<T extends AbstractIcebergController
     IcebergWarehouseInfo warehouse = new IcebergWarehouseInfo();
     warehouse.setClientId(Urn.createFromString("urn:li:secret:clientId"));
     warehouse.setClientSecret(Urn.createFromString("urn:li:secret:clientSecret"));
-    warehouse.setCustomProperties(
-        new StringMap(
-            Map.of("dataRoot", "s3://data-root/test/", "region", "us-east-1", "role", "testRole")));
+    warehouse.setDataRoot("s3://data-root/test/");
+    warehouse.setCustomProperties(new StringMap(Map.of("region", "us-east-1", "role", "testRole")));
     return warehouse;
   }
 

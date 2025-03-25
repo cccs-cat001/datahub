@@ -86,8 +86,8 @@ public class DataHubIcebergWarehouseTest {
     icebergWarehouse = new IcebergWarehouseInfo();
     icebergWarehouse.setClientId(clientIdUrn);
     icebergWarehouse.setClientSecret(clientSecretUrn);
-    icebergWarehouse.setCustomProperties(
-        new StringMap(Map.of("role", role, "region", region, "dataRoot", dataRoot)));
+    icebergWarehouse.setDataRoot(dataRoot);
+    icebergWarehouse.setCustomProperties(new StringMap(Map.of("role", role, "region", region)));
     icebergWarehouse.setProvider(provider);
     when(entityService.getLatestAspect(
             any(),
@@ -137,6 +137,7 @@ public class DataHubIcebergWarehouseTest {
     String clientSecret = "testClientSecret";
     String tenantId = "testTenantId";
     String provider = "Azure";
+    String dataRoot = "abfss://test@datalake.dfs.core.windows.net/path/to/root";
     Urn clientIdUrn = Urn.createFromString("urn:li:secret:clientId");
     Urn clientSecretUrn = Urn.createFromString("urn:li:secret:clientSecret");
 
@@ -145,6 +146,7 @@ public class DataHubIcebergWarehouseTest {
     icebergWarehouse.setClientSecret(clientSecretUrn);
     icebergWarehouse.setCustomProperties(new StringMap(Map.of("tenantId", tenantId)));
     icebergWarehouse.setProvider(provider);
+    icebergWarehouse.setDataRoot(dataRoot);
     when(entityService.getLatestAspect(
             any(),
             any(),
@@ -200,8 +202,8 @@ public class DataHubIcebergWarehouseTest {
     icebergWarehouse = new IcebergWarehouseInfo();
     icebergWarehouse.setClientId(clientIdUrn);
     icebergWarehouse.setClientSecret(clientSecretUrn);
-    icebergWarehouse.setCustomProperties(
-        new StringMap(Map.of("role", role, "region", region, "dataRoot", dataRoot)));
+    icebergWarehouse.setDataRoot(dataRoot);
+    icebergWarehouse.setCustomProperties(new StringMap(Map.of("role", role, "region", region)));
     icebergWarehouse.setProvider(provider);
     when(entityService.getLatestAspect(
             any(),
@@ -291,10 +293,7 @@ public class DataHubIcebergWarehouseTest {
             eq(DataHubIcebergWarehouse.DATAPLATFORM_INSTANCE_ICEBERG_WAREHOUSE_ASPECT_NAME)))
         .thenReturn(warehouseAspect);
     when(warehouseAspect.data())
-        .thenReturn(
-            new IcebergWarehouseInfo()
-                .setCustomProperties(new StringMap(Map.of("dataRoot", dataRoot)))
-                .data());
+        .thenReturn(new IcebergWarehouseInfo().setDataRoot(dataRoot).data());
 
     DataHubIcebergWarehouse warehouse =
         DataHubIcebergWarehouse.of(

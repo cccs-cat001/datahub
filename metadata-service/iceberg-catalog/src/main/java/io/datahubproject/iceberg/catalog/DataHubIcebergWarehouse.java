@@ -178,7 +178,7 @@ public class DataHubIcebergWarehouse {
   }
 
   public String getDataRoot() {
-    return icebergWarehouse.getCustomProperties().get("dataRoot");
+    return icebergWarehouse.getDataRoot();
   }
 
   @SneakyThrows

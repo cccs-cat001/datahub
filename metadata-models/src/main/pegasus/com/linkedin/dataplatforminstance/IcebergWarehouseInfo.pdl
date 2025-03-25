@@ -13,6 +13,11 @@ import com.linkedin.common.CustomProperties
 record  IcebergWarehouseInfo includes CustomProperties {
 
   /**
+   * Path of the root for the backing store of the tables in the warehouse.
+   */
+  dataRoot: string
+  
+  /**
    * clientId to be used to authenticate with storage hosting this warehouse
    */
   clientId: Urn
