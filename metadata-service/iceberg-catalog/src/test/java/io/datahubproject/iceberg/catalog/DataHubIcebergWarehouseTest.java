@@ -15,6 +15,7 @@ import com.linkedin.common.urn.DataPlatformUrn;
 import com.linkedin.common.urn.DatasetUrn;
 import com.linkedin.common.urn.Urn;
 import com.linkedin.data.template.RecordTemplate;
+import com.linkedin.data.template.StringMap;
 import com.linkedin.dataplatforminstance.IcebergWarehouseInfo;
 import com.linkedin.dataset.DatasetProperties;
 import com.linkedin.dataset.IcebergCatalogInfo;
@@ -83,10 +84,8 @@ public class DataHubIcebergWarehouseTest {
     icebergWarehouse = new IcebergWarehouseInfo();
     icebergWarehouse.setClientId(clientIdUrn);
     icebergWarehouse.setClientSecret(clientSecretUrn);
-    icebergWarehouse.setDataRoot(dataRoot);
-    icebergWarehouse.setRegion(region);
-    icebergWarehouse.setRole(role);
-
+    icebergWarehouse.setCustomProperties(
+        new StringMap(Map.of("role", role, "region", region, "dataRoot", dataRoot)));
     when(entityService.getLatestAspect(
             any(),
             any(),
@@ -124,8 +123,8 @@ public class DataHubIcebergWarehouseTest {
     assertNotNull(credentials);
     assertEquals(credentials.clientId, "decrypted-" + clientId);
     assertEquals(credentials.clientSecret, "decrypted-" + clientSecret);
-    assertEquals(credentials.role, role);
-    assertEquals(credentials.region, region);
+    assertEquals(credentials.customProperties.get("role"), role);
+    assertEquals(credentials.customProperties.get("region"), region);
   }
 
   @Test(
@@ -175,7 +174,10 @@ public class DataHubIcebergWarehouseTest {
             eq(DataHubIcebergWarehouse.DATAPLATFORM_INSTANCE_ICEBERG_WAREHOUSE_ASPECT_NAME)))
         .thenReturn(warehouseAspect);
     when(warehouseAspect.data())
-        .thenReturn(new IcebergWarehouseInfo().setDataRoot(dataRoot).data());
+        .thenReturn(
+            new IcebergWarehouseInfo()
+                .setCustomProperties(new StringMap(Map.of("dataRoot", dataRoot)))
+                .data());
 
     DataHubIcebergWarehouse warehouse =
         DataHubIcebergWarehouse.of(
@@ -639,7 +641,8 @@ public class DataHubIcebergWarehouseTest {
           }
         };
 
-    // by default mock to return null on entity-service calls, so dataset should not be found
+    // by default mock to return null on entity-service calls, so dataset should not
+    // be found
     warehouse.renameDataset(fromTableId, toTableId, false);
   }
 }

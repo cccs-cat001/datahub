@@ -14,6 +14,7 @@ import com.datahub.plugins.auth.authorization.Authorizer;
 import com.google.common.net.HttpHeaders;
 import com.linkedin.common.urn.Urn;
 import com.linkedin.data.template.RecordTemplate;
+import com.linkedin.data.template.StringMap;
 import com.linkedin.dataplatforminstance.IcebergWarehouseInfo;
 import com.linkedin.metadata.entity.EntityService;
 import com.linkedin.metadata.search.EntitySearchService;
@@ -111,9 +112,9 @@ public abstract class AbstractControllerTest<T extends AbstractIcebergController
     IcebergWarehouseInfo warehouse = new IcebergWarehouseInfo();
     warehouse.setClientId(Urn.createFromString("urn:li:secret:clientId"));
     warehouse.setClientSecret(Urn.createFromString("urn:li:secret:clientSecret"));
-    warehouse.setDataRoot("s3://data-root/test/");
-    warehouse.setRegion("us-east-1");
-    warehouse.setRole("testRole");
+    warehouse.setCustomProperties(
+        new StringMap(
+            Map.of("dataRoot", "s3://data-root/test/", "region", "us-east-1", "role", "testRole")));
     return warehouse;
   }
 

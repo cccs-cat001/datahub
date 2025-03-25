@@ -42,8 +42,7 @@ public class S3CredentialProviderTest {
         new CredentialProvider.StorageProviderCredentials(
             "testClientId",
             "testClientSecret",
-            "arn:aws:iam::123456789012:role/test-role",
-            "us-east-1",
+            Map.of("role", "arn:aws:iam::123456789012:role/test-role", "region", "us-east-1"),
             null);
 
     cacheKey =
@@ -82,16 +81,17 @@ public class S3CredentialProviderTest {
       // Mock the static builder() method
       stsClientMockedStatic.when(StsClient::builder).thenReturn(builderMock);
 
-      /*        "client.region",
-       REGION.id(),
-       "s3.access-key-id",
-       response.credentials().accessKeyId(),
-       "s3.secret-access-key",
-       response.credentials().secretAccessKey(),
-       "s3.session-token",
-       response.credentials().sessionToken());
-
-      */
+      /*
+       * "client.region",
+       * REGION.id(),
+       * "s3.access-key-id",
+       * response.credentials().accessKeyId(),
+       * "s3.secret-access-key",
+       * response.credentials().secretAccessKey(),
+       * "s3.session-token",
+       * response.credentials().sessionToken());
+       *
+       */
 
       Map<String, String> creds = credentialProvider.getCredentials(cacheKey, storageProviderCreds);
       assertNotNull(creds);

@@ -33,8 +33,7 @@ public class CachingCredentialProviderTest {
         new CredentialProvider.StorageProviderCredentials(
             "testClientId",
             "testClientSecret",
-            "arn:aws:iam::123456789012:role/test-role",
-            "us-east-1",
+            Map.of("role", "arn:aws:iam::123456789012:role/test-role", "region", "us-east-1"),
             null);
 
     cacheKey =
@@ -94,7 +93,7 @@ public class CachingCredentialProviderTest {
         CredentialsCacheKey key, StorageProviderCredentials storageProviderCredentials) {
       loadCount++;
       return Map.of(
-          "client.region", storageProviderCredentials.region,
+          "client.region", storageProviderCredentials.customProperties.get("region"),
           "s3.access-key-id", "TESTACCESSKEY" + loadCount, // Make each load unique
           "s3.secret-access-key", "TESTSECRETKEY" + loadCount,
           "s3.session-token", "TESTSESSIONTOKEN" + loadCount);
