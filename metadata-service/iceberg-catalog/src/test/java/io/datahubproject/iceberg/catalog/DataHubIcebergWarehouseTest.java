@@ -5,6 +5,7 @@ import static io.datahubproject.iceberg.catalog.DataHubIcebergWarehouse.DATASET_
 import static io.datahubproject.iceberg.catalog.Utils.fullTableName;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.*;
 import static org.testng.Assert.*;
 
@@ -70,13 +71,14 @@ public class DataHubIcebergWarehouseTest {
   }
 
   @Test
-  public void testGetStorageProviderCredentials() throws Exception {
+  public void testGetStorageProviderCredentialsAWS() throws Exception {
     String platformInstance = "test-platform";
     String clientId = "testClientId";
     String clientSecret = "testClientSecret";
     String role = "testRole";
     String dataRoot = "s3://data-root/test/";
     String region = "us-east-1";
+    String provider = "AWS";
 
     Urn clientIdUrn = Urn.createFromString("urn:li:secret:clientId");
     Urn clientSecretUrn = Urn.createFromString("urn:li:secret:clientSecret");
@@ -86,6 +88,121 @@ public class DataHubIcebergWarehouseTest {
     icebergWarehouse.setClientSecret(clientSecretUrn);
     icebergWarehouse.setCustomProperties(
         new StringMap(Map.of("role", role, "region", region, "dataRoot", dataRoot)));
+    icebergWarehouse.setProvider(provider);
+    when(entityService.getLatestAspect(
+            any(),
+            any(),
+            eq(DataHubIcebergWarehouse.DATAPLATFORM_INSTANCE_ICEBERG_WAREHOUSE_ASPECT_NAME)))
+        .thenReturn(warehouseAspect);
+    when(warehouseAspect.data()).thenReturn(icebergWarehouse.data());
+
+    when(secretService.decrypt(eq(clientId))).thenReturn("decrypted-" + clientId);
+    when(secretService.decrypt(eq(clientSecret))).thenReturn("decrypted-" + clientSecret);
+
+    DataHubSecretValue clientIdValue = new DataHubSecretValue();
+    clientIdValue.setValue(clientId);
+
+    DataHubSecretValue clientSecretValue = new DataHubSecretValue();
+    clientSecretValue.setValue(clientSecret);
+
+    Map<Urn, List<RecordTemplate>> aspectsMap = new HashMap<>();
+    aspectsMap.put(clientIdUrn, Arrays.asList(clientIdValue));
+    aspectsMap.put(clientSecretUrn, Arrays.asList(clientSecretValue));
+
+    when(entityService.getLatestAspects(
+            eq(operationContext),
+            eq(Set.of(clientIdUrn, clientSecretUrn)),
+            eq(Set.of("dataHubSecretValue")),
+            eq(false)))
+        .thenReturn(aspectsMap);
+
+    DataHubIcebergWarehouse warehouse =
+        DataHubIcebergWarehouse.of(
+            platformInstance, entityService, secretService, cacheEvictionService, operationContext);
+
+    CredentialProvider.StorageProviderCredentials credentials =
+        warehouse.getStorageProviderCredentials();
+
+    assertNotNull(credentials);
+    assertEquals(credentials.clientId, "decrypted-" + clientId);
+    assertEquals(credentials.clientSecret, "decrypted-" + clientSecret);
+    assertEquals(credentials.customProperties.get("role"), role);
+    assertEquals(credentials.customProperties.get("region"), region);
+  }
+
+  @Test
+  public void testGetStorageProviderCredentialsAzure() throws Exception {
+    String platformInstance = "test-platform";
+    String clientId = "testClientId";
+    String clientSecret = "testClientSecret";
+    String tenantId = "testTenantId";
+    String provider = "Azure";
+    Urn clientIdUrn = Urn.createFromString("urn:li:secret:clientId");
+    Urn clientSecretUrn = Urn.createFromString("urn:li:secret:clientSecret");
+
+    icebergWarehouse = new IcebergWarehouseInfo();
+    icebergWarehouse.setClientId(clientIdUrn);
+    icebergWarehouse.setClientSecret(clientSecretUrn);
+    icebergWarehouse.setCustomProperties(new StringMap(Map.of("tenantId", tenantId)));
+    icebergWarehouse.setProvider(provider);
+    when(entityService.getLatestAspect(
+            any(),
+            any(),
+            eq(DataHubIcebergWarehouse.DATAPLATFORM_INSTANCE_ICEBERG_WAREHOUSE_ASPECT_NAME)))
+        .thenReturn(warehouseAspect);
+    when(warehouseAspect.data()).thenReturn(icebergWarehouse.data());
+
+    when(secretService.decrypt(eq(clientId))).thenReturn("decrypted-" + clientId);
+    when(secretService.decrypt(eq(clientSecret))).thenReturn("decrypted-" + clientSecret);
+
+    DataHubSecretValue clientIdValue = new DataHubSecretValue();
+    clientIdValue.setValue(clientId);
+
+    DataHubSecretValue clientSecretValue = new DataHubSecretValue();
+    clientSecretValue.setValue(clientSecret);
+
+    Map<Urn, List<RecordTemplate>> aspectsMap = new HashMap<>();
+    aspectsMap.put(clientIdUrn, Arrays.asList(clientIdValue));
+    aspectsMap.put(clientSecretUrn, Arrays.asList(clientSecretValue));
+
+    when(entityService.getLatestAspects(
+            eq(operationContext),
+            eq(Set.of(clientIdUrn, clientSecretUrn)),
+            eq(Set.of("dataHubSecretValue")),
+            eq(false)))
+        .thenReturn(aspectsMap);
+
+    DataHubIcebergWarehouse warehouse =
+        DataHubIcebergWarehouse.of(
+            platformInstance, entityService, secretService, cacheEvictionService, operationContext);
+
+    CredentialProvider.StorageProviderCredentials credentials =
+        warehouse.getStorageProviderCredentials();
+
+    assertNotNull(credentials);
+    assertEquals(credentials.clientId, "decrypted-" + clientId);
+    assertEquals(credentials.clientSecret, "decrypted-" + clientSecret);
+    assertEquals(credentials.customProperties.get("tenantId"), tenantId);
+  }
+
+  @Test(expectedExceptions = RuntimeException.class)
+  public void testGetStorageProviderCredentialsInvalid() throws Exception {
+    String platformInstance = "test-platform";
+    String clientId = "testClientId";
+    String clientSecret = "testClientSecret";
+    String role = "testRole";
+    String dataRoot = "s3://data-root/test/";
+    String region = "us-east-1";
+    String provider = "none";
+    Urn clientIdUrn = Urn.createFromString("urn:li:secret:clientId");
+    Urn clientSecretUrn = Urn.createFromString("urn:li:secret:clientSecret");
+
+    icebergWarehouse = new IcebergWarehouseInfo();
+    icebergWarehouse.setClientId(clientIdUrn);
+    icebergWarehouse.setClientSecret(clientSecretUrn);
+    icebergWarehouse.setCustomProperties(
+        new StringMap(Map.of("role", role, "region", region, "dataRoot", dataRoot)));
+    icebergWarehouse.setProvider(provider);
     when(entityService.getLatestAspect(
             any(),
             any(),
