@@ -24,7 +24,7 @@ DEFAULT_CREDS_EXPIRY_DURATION_SECONDS = 60 * 60
 DEFAULT_FABRIC_TYPE = datahub.metadata.schema_classes.FabricTypeClass.PROD
 
 DATA_PLATFORM_INSTANCE_WAREHOUSE_ASPECT = "icebergWarehouseInfo"
-
+DATA_PLATFORM_PROVIDERS = ["s3", "azure"]
 
 @click.group()
 def iceberg() -> None:
@@ -113,9 +113,9 @@ def validate_role(role: str, sts_client: Any, duration_seconds: Optional[int]) -
 def validate_warehouse(data_root: str) -> str:
     # validate data_root location
     scheme = urlparse(data_root).scheme
-    if scheme not in ["s3", "abfs"]:
+    if scheme not in DATA_PLATFORM_PROVIDERS:
         click.secho(
-            f"Unsupported warehouse location '{data_root}', supported schemes: s3",
+            f"Unsupported warehouse location '{data_root}', supported schemes: {DATA_PLATFORM_PROVIDERS}",
             fg="red",
             err=True,
         )
@@ -154,14 +154,14 @@ def validate_warehouse(data_root: str) -> str:
 @click.option(
     "-g",
     "--region",
-    required=True,
+    required=False,
     type=str,
     help="Storage provider specific region where the warehouse data root is located",
 )
 @click.option(
     "-r",
     "--role",
-    required=True,
+    required=False,
     type=str,
     help="Storage provider specific role to be used when vending credentials",
 )
@@ -178,6 +178,12 @@ def validate_warehouse(data_root: str) -> str:
     required=False,
     type=int,
     help=f"Expiration duration for temporary credentials used for role. Defaults to {DEFAULT_CREDS_EXPIRY_DURATION_SECONDS} seconds if unspecified",
+)
+@click.option(
+    "--provider",
+    required=True,
+    type=click.Choice(DATA_PLATFORM_PROVIDERS),
+    help="the name of the backend cloud provider"
 )
 @telemetry.with_telemetry(capture_kwargs=["duration_seconds"])
 def create(
